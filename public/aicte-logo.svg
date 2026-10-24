@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Radial gradient for inner glow -->
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF8E1" />
+      <stop offset="70%" stop-color="#FFE082" />
+      <stop offset="100%" stop-color="#FFB300" />
+    </radialGradient>
+    
+    <!-- Gold gradient for outer rings and borders -->
+    <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37" />
+      <stop offset="35%" stop-color="#FFF2A3" />
+      <stop offset="65%" stop-color="#C59B27" />
+      <stop offset="100%" stop-color="#8C6D15" />
+    </linearGradient>
+
+    <!-- Flame gradient -->
+    <linearGradient id="flameGrad" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#D84315" />
+      <stop offset="30%" stop-color="#F57C00" />
+      <stop offset="70%" stop-color="#FFB300" />
+      <stop offset="100%" stop-color="#FFF9C4" />
+    </linearGradient>
+
+    <!-- Diya Brass gradient -->
+    <linearGradient id="diyaGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF8F00" />
+      <stop offset="50%" stop-color="#FFA000" />
+      <stop offset="100%" stop-color="#E65100" />
+    </linearGradient>
+
+    <!-- Navy Outer Circle Ring -->
+    <linearGradient id="navyBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E2A47" />
+      <stop offset="50%" stop-color="#191636" />
+      <stop offset="100%" stop-color="#081426" />
+    </linearGradient>
+
+    <!-- Text Path for Upper and Lower arcs -->
+    <path id="upperArc" d="M 28,100 A 72,72 0 1,1 172,100" fill="none" />
+    <path id="lowerArc" d="M 172,100 A 72,72 0 0,1 28,100" fill="none" />
+  </defs>
+
+  <!-- Outer Navy Circular Ring -->
+  <circle cx="100" cy="100" r="97" fill="url(#navyBorder)" stroke="url(#goldRing)" stroke-width="4" />
+  
+  <!-- Inner Gold Beaded Border -->
+  <circle cx="100" cy="100" r="86" fill="none" stroke="url(#goldRing)" stroke-width="1.5" stroke-dasharray="2,3" />
+
+  <!-- Outer Ring Text (Hindi & English Official AICTE Name) -->
+  <text font-family="'Noto Sans Devanagari', 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="8.5" fill="#FFFFFF" letter-spacing="1">
+    <textPath href="#upperArc" startOffset="50%" text-anchor="middle">
+      अखिल भारतीय तकनीकी शिक्षा परिषद
+    </textPath>
+  </text>
+  
+  <text font-family="'Segoe UI', Arial, sans-serif" font-weight="700" font-size="7.2" fill="#FFE082" letter-spacing="0.8">
+    <textPath href="#lowerArc" startOffset="50%" text-anchor="middle">
+      ALL INDIA COUNCIL FOR TECHNICAL EDUCATION
+    </textPath>
+  </text>
+
+  <!-- Stars on the sides -->
+  <circle cx="27" cy="100" r="2.2" fill="#FFD54F" />
+  <circle cx="173" cy="100" r="2.2" fill="#FFD54F" />
+
+  <!-- Inner Center Circle -->
+  <circle cx="100" cy="100" r="66" fill="#FFFFFF" stroke="url(#goldRing)" stroke-width="2.5" />
+
+  <!-- Background Sunburst / 16-Spoke Engineering Gear representing Technical Education -->
+  <g opacity="0.25">
+    <circle cx="100" cy="98" r="46" fill="none" stroke="#0E2A47" stroke-width="6" stroke-dasharray="6,4" />
+    <circle cx="100" cy="98" r="40" fill="none" stroke="#0E2A47" stroke-width="1.5" />
+    <!-- Radiating sun rays / spokes -->
+    <line x1="100" y1="52" x2="100" y2="144" stroke="#0E2A47" stroke-width="1" />
+    <line x1="54" y1="98" x2="146" y2="98" stroke="#0E2A47" stroke-width="1" />
+    <line x1="68" y1="66" x2="132" y2="130" stroke="#0E2A47" stroke-width="1" />
+    <line x1="68" y1="130" x2="132" y2="66" stroke="#0E2A47" stroke-width="1" />
+  </g>
+
+  <!-- Central Symbol: Traditional Indian Oil Lamp (Diya) of Knowledge -->
+  <!-- Radiating Halo of Knowledge -->
+  <circle cx="100" cy="84" r="22" fill="url(#sunGlow)" opacity="0.6" filter="blur(2px)" />
+
+  <!-- Flame of Knowledge (Deepak Shikha) -->
+  <path d="M100 58 C96 68, 88 77, 88 88 C88 98, 93 103, 100 103 C107 103, 112 98, 112 88 C112 77, 104 68, 100 58 Z" fill="url(#flameGrad)" />
+  <!-- Inner Bright Flame Tongue -->
+  <path d="M100 66 C98 73, 93 79, 93 87 C93 94, 96 98, 100 98 C104 98, 107 94, 107 87 C107 79, 102 73, 100 66 Z" fill="#FFF9C4" />
+
+  <!-- Traditional Brass Diya Base / Vessel -->
+  <path d="M68 99 C76 102, 85 107, 100 107 C115 107, 124 102, 132 99 C134 104, 131 113, 121 117 C112 120, 88 120, 79 117 C69 113, 66 104, 68 99 Z" fill="url(#diyaGrad)" stroke="#B26A00" stroke-width="1" />
+  <ellipse cx="100" cy="99" rx="31" ry="4" fill="#FFA000" />
+  <ellipse cx="100" cy="99" rx="28" ry="2.5" fill="#E65100" />
+
+  <!-- Diya Stand / Pedestal -->
+  <path d="M93 118 L91 126 C91 128, 86 131, 78 132 L122 132 C114 131, 109 128, 109 126 L107 118 Z" fill="url(#diyaGrad)" stroke="#B26A00" stroke-width="0.8" />
+  <rect x="75" y="132" width="50" height="3" rx="1.5" fill="#D4AF37" />
+
+  <!-- Open Book / Lotus Petals of Wisdom -->
+  <path d="M100 126 C90 122, 76 123, 66 128 C74 133, 86 132, 100 134 C114 132, 126 133, 134 128 C124 123, 110 122, 100 126 Z" fill="#FFFFFF" stroke="#0E2A47" stroke-width="0.8" />
+
+  <!-- Sanskrit Motto Banner at Bottom: योगः कर्मसु कौशलम् (Yogaḥ Karmasu Kauśalam) -->
+  <path d="M52 142 L148 142 L143 154 L100 152 L57 154 Z" fill="#0E2A47" stroke="url(#goldRing)" stroke-width="1" />
+  <text x="100" y="149" font-family="'Noto Sans Devanagari', 'Segoe UI', Arial, sans-serif" font-weight="bold" font-size="7.5" fill="#FFD54F" text-anchor="middle" letter-spacing="0.5">
+    योगः कर्मसु कौशलम्
+  </text>
+</svg>

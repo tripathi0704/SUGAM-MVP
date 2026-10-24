@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// S.U.G.A.M. 2.0 — Smart Unified Grievance & Accountability Matrix
+// SIH 2026 · PS 26264 · AICTE Complaint Dashboard
+//
+// This schema mirrors the SUGAM 2.0 document/collection design (users,
+// institutions, cases, caseEvents, auditEvents, assignments, evidenceFiles,
+// notifications, duplicateSuggestions, policyConfigs, integrationSyncRuns).
+// Sandbox demo runs SQLite via Prisma. The same document shapes map 1:1 to
+// MongoDB for production (see .env.example notes).
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Users & Institutions ─────────────────────────────
+
+// primaryRole: COMPLAINANT | INSTITUTION_OFFICER | INTAKE_OFFICER |
+//              BUREAU_OFFICER | REVIEWING_OFFICER | AUDITOR | PLATFORM_ADMIN
+model User {
+  id             String       @id @default(cuid())
+  name           String
+  email          String       @unique // normalized lowercase
+  passwordHash   String
+  primaryRole    String
+  rolesJson      String       @default("[]") // roles[] per spec §1.2
+  phone          String?
+  rollNo         String? // complainants (students/faculty)
+  designation    String?
+  bureau         String? // officers: home bureau
+  institutionId  String?
+  institution    Institution? @relation(fields: [institutionId], references: [id])
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  complaints     Case[]       @relation("complainantCases")
+  assignedCases  Case[]       @relation("assignedOfficerCases")
+  caseEvents     CaseEvent[]
+  auditEvents    AuditEvent[]
+  evidenceFiles  EvidenceFile[]
+  notifications  Notification[]
+}
+
+model Institution {
+  id              String   @id @default(cuid())
+  code            String   @unique // e.g. AICTE-1042 (synthetic demo codes)
+  permanentId     String?  // AICTE Permanent ID e.g. 1-938210491
+  name            String
+  state           String?
+  district        String?
+  region          String?  // AICTE Region: NORTHERN | WESTERN | SOUTHERN | EASTERN | etc.
+  address         String?  // Physical campus address
+  approvalStatus  String   @default("APPROVED") // APPROVED | UNDER_NOTICE | SHOW_CAUSE
+  identifiersJson String   @default("[]") // AISHE / other synthetic identifiers
+  dataSource      String   @default("SEeded_DEMO") // SEeded_DEMO | OFFICER_ENTERED
+  isSynthetic     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  cases           Case[]
+  reports         InternalReport[]
+}
+
+// ───────────────────────────── Core case record ─────────────────────────────
+
+// status: RECEIVED | NEEDS_TRIAGE | ASSIGNED | IN_REVIEW |
+//         WAITING_FOR_INFORMATION | ACTION_REQUIRED | PENDING_REVIEW |
+//         RESOLVED | CLOSED | REOPENED | UNDER_PROCESS | ACTION_INITIATED | TRANSFERRED | COORDINATION_REQUIRED
+// priority: LOW | NORMAL | HIGH | CRITICAL
+// category: FEE_REFUND | SCHOLARSHIP | RAGGING | FACULTY_SALARY |
+//           APPROVAL_DOC | HOSTEL | EXAM_CELL | INFRASTRUCTURE | OTHER
+model Case {
+  id                 String       @id @default(cuid())
+  caseNumber         String       @unique // SUGAM-2026-0001
+  sourceSystem       String       @default("DEMO_PORTAL") // DEMO_PORTAL | DEMO_CPGRAMS (simulated)
+  sourceRecordId     String? // idempotency for imports
+  institutionId      String
+  institution        Institution  @relation(fields: [institutionId], references: [id])
+  complainantId      String?
+  complainant        User?        @relation("complainantCases", fields: [complainantId], references: [id])
+  category           String
+  categorySource     String       @default("COMPLAINANT_SELECTED") // RULE_SUGGESTED | OFFICER_SELECTED | COMPLAINANT_SELECTED | IMPORT_NORMALIZED
+  ruleExplanation    String? // explainable automation: why a rule fired
+  bureau             String? // routed AICTE bureau/cell (REGULATION_BUREAU, PGRC, etc.)
+  region             String? // AICTE Region
+  subject            String
+  description        String
+  languageOriginal   String       @default("en")
+  status             String       @default("RECEIVED")
+  priority           String       @default("NORMAL")
+  assignedOfficerId  String?
+  assignedOfficer    User?        @relation("assignedOfficerCases", fields: [assignedOfficerId], references: [id])
+  slaPolicyVersion   String? // e.g. DEMO-POLICY-v1 — deadlines are demo config
+  dueAt              DateTime?
+  slaBreached        Boolean      @default(false)
+  escalated          Boolean      @default(false)
+  overlapFlag        Boolean      @default(false) // PS 26264: Potential Overlapping Cases across Bureaus
+  coordinationStatus String?      // NONE | COORDINATION_REQUIRED | JOINT_NOTICE_INITIATED | RESOLVED
+  transferredFromBureau String?  // Transfer history
+  transferReason     String?
+  nextActionLabel    String?
+  nextActionDueAt    DateTime?
+  nextActionState    String? // OPEN | DONE
+  relatedCaseIdsJson String       @default("[]") // officer-confirmed links only
+  masterIncidentId   String?
+  resolvedAt         DateTime?
+  closedAt           DateTime?
+  rating             Int? // 1-5 complainant feedback after resolution
+  ratingComment      String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  events             CaseEvent[]
+  responses          CaseResponse[]
+  evidenceFiles      EvidenceFile[]
+  assignments        Assignment[]
+  duplicatePrimary   DuplicateSuggestion[] @relation("dupPrimary")
+  duplicateCandidate DuplicateSuggestion[] @relation("dupCandidate")
+  notifications      Notification[]
+
+  @@unique([sourceSystem, sourceRecordId])
+  @@index([institutionId, status])
+  @@index([assignedOfficerId, status])
+  @@index([bureau, status])
+  @@index([status, dueAt])
+}
+
+model CaseEvent {
+  id            String  @id @default(cuid())
+  caseId        String
+  case          Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actorId       String?
+  actor         User?   @relation(fields: [actorId], references: [id])
+  actorName     String? // denormalized for audit resilience
+  eventType     String  // FILED | AUTO_ROUTED | URGENCY_FLAGGED | DUPLICATE_FLAGGED | TRIAGED | ASSIGNED | STATUS_CHANGED | NEXT_ACTION_SET | RESPONSE_REQUESTED | RESPONSE_ADDED | NOTE_ADDED | EVIDENCE_ADDED | RATED | REOPENED | SLA_CHECK | ESCALATED | REPORT_SENT | LINKED | IMPORTED
+  summary       String
+  visibility    String  @default("INTERNAL") // INTERNAL | PUBLIC (role-filtered)
+  metadataJson  String  @default("{}")
+  requestId     String?
+  createdAt     DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+// SHA-256 hash-linked audit trail (§ Pipeline E / §13). eventHash covers this
+// event + previousHash; appendAudit() is the only writer.
+model AuditEvent {
+  id           String  @id @default(cuid())
+  sequence     Int     @unique
+  actorId      String?
+  actor        User?   @relation(fields: [actorId], references: [id])
+  actorEmail   String?
+  action       String
+  targetType   String?
+  targetId     String?
+  summary      String
+  requestId    String?
+  metadataJson String  @default("{}")
+  previousHash String  @default("GENESIS")
+  eventHash    String
+  createdAt    DateTime @default(now())
+
+  @@index([targetType, targetId])
+}
+
+model Assignment {
+  id            String   @id @default(cuid())
+  caseId        String
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromBureau    String?
+  toBureau      String?
+  fromOfficerId String?
+  toOfficerId   String?
+  assignedBy    String?
+  reason        String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+// Evidence metadata; binary files live in private storage, never public dirs.
+model EvidenceFile {
+  id                String   @id @default(cuid())
+  caseId            String
+  case              Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  storageKey        String
+  originalFileName  String
+  mimeType          String
+  sizeBytes         Int
+  uploadedById      String?
+  uploader          User?    @relation(fields: [uploadedById], references: [id])
+  uploaderName      String?
+  uploaderRole      String?
+  accessLevel       String   @default("CASE_PARTIES") // CASE_PARTIES | OFFICERS_ONLY
+  verificationState String   @default("UNVERIFIED") // UNVERIFIED | VERIFIED — humans verify, never auto
+  createdAt         DateTime @default(now())
+
+  @@index([caseId])
+}
+
+// Responses: institution replies (often to an officer's request), complainant
+// added info, and officer official notes. Never auto-resolves a case.
+model CaseResponse {
+  id            String   @id @default(cuid())
+  caseId        String
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId      String?
+  authorName    String?
+  authorRole    String // INSTITUTION_OFFICER | COMPLAINANT | OFFICER
+  message       String
+  requested     Boolean  @default(false) // true = reply to an officer's response request
+  templateUsed  String? // pre-defined format title (automation aid)
+  evidenceIdsJson String @default("[]")
+  createdAt     DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+model Notification {
+  id              String   @id @default(cuid())
+  recipientId     String
+  recipient       User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  caseId          String?
+  case            Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type            String // DUE_SOON | OVERDUE | ESCALATION | ASSIGNED | RESPONSE_REQUESTED | RESPONSE_ADDED | STATUS_UPDATED | REPORT_SENT | RATE_REQUEST
+  title           String
+  message         String
+  deliveryChannel String   @default("IN_APP")
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([recipientId, createdAt])
+}
+
+// Pipeline D: suggestions only — officers confirm/reject; never auto-merge.
+model DuplicateSuggestion {
+  id               String    @id @default(cuid())
+  primaryCaseId    String
+  primaryCase      Case      @relation("dupPrimary", fields: [primaryCaseId], references: [id], onDelete: Cascade)
+  candidateCaseId  String
+  candidateCase    Case      @relation("dupCandidate", fields: [candidateCaseId], references: [id], onDelete: Cascade)
+  score            Float // 0-1 token similarity estimate, labeled as such
+  algorithmVersion String    @default("jaccard-v1")
+  reasonsJson      String    @default("[]")
+  state            String    @default("PENDING") // PENDING | CONFIRMED | REJECTED
+  reviewedById     String?
+  reviewedByName   String?
+  reviewedAt       DateTime?
+  reviewReason     String?
+  createdAt        DateTime  @default(now())
+
+  @@index([state])
+}
+
+// §5.1 policyConfigs — configurable demo policies; never hard-coded statutory deadlines.
+model PolicyConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  valueJson String
+  updatedAt DateTime @updatedAt
+}
+
+model IntegrationSyncRun {
+  id              String   @id @default(cuid())
+  sourceSystem    String // DEMO_CPGRAMS — SIMULATED source, clearly labeled
+  trigger         String   @default("MANUAL") // MANUAL | SCHEDULED_DEMO
+  status          String   @default("SUCCESS") // SUCCESS | PARTIAL | FAILED
+  totalRows       Int      @default(0)
+  importedRows    Int      @default(0)
+  duplicateSkipped Int     @default(0)
+  rejectedRowsJson String  @default("[]")
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+}
+
+model Counter {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Int    @default(0)
+}
+
+// Officer → institution internal accountability report (§ user story Phase 3)
+model InternalReport {
+  id            String   @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  officerId     String?
+  officerName   String?
+  caseId        String?
+  caseNumber    String?
+  subject       String
+  message       String
+  status        String   @default("SENT") // SENT | ACKNOWLEDGED
+  acknowledgedAt DateTime?
+  createdAt     DateTime @default(now())
+}
+
+// Pre-defined response formats (college automation aid; admin-managed)
+model ReplyTemplate {
+  id       String  @id @default(cuid())
+  title    String
+  category String? // smart-match to case category
+  body     String
+}
