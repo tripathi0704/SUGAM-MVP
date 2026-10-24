@@ -23,7 +23,7 @@ trail, simulated imports, and institution accountability scoring.
 
 No database server is needed — the demo uses an embedded **SQLite** file.
 
-### Steps
+## Steps
 
 1. **Extract the zip** to any folder, e.g. `C:\projects\sugam` (Windows) or `~/projects/sugam` (Mac/Linux).
 
